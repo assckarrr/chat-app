@@ -25,13 +25,34 @@
 
         socket.on('receiveMessage', (message) => {
             const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<p>${message.content}</p>`;
+            chatBox.innerHTML += `<p><strong>${message.sender}:</strong> ${message.content}</p>`;
         });
+
+        // Decode token to get user info
+        function getUserFromToken() {
+            const token = localStorage.getItem('token');
+            if (!token) return null;
+
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            console.log(payload);
+            console.log(token)
+            return payload.username; // Ensure username is included in the token payload
+        }
 
         function sendMessage() {
             const message = document.getElementById('message').value;
-            socket.emit('sendMessage', { content: message });
+            const sender = getUserFromToken();
+
+            if (!sender) {
+                alert("Authentication error, please login again.");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            socket.emit('sendMessage', { sender, content: message });
         }
+
+        
     </script>
 </body>
 </html>
