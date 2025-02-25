@@ -7,6 +7,7 @@ const socketIo = require('socket.io');
 const authRoutes = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const { authenticateSocket, authenticateToken } = require('./middleware/authMiddleware');
+const Message = require('./models/Message');
 
 const app = express();
 const server = http.createServer(app);
@@ -44,9 +45,32 @@ io.use(authenticateSocket);
 io.on('connection', (socket) => {
   console.log('New user connected:', socket.user.username);
 
-  socket.on('sendMessage', async (messageData) => {
-    io.emit('receiveMessage', messageData);
-  });
+  Message.find().sort({ timestamp: 1 }).then((messages) => {
+    socket.emit('previousMessages', messages);
+});
+
+socket.on('sendMessage', async (messageData) => {
+  
+    try {
+        if (!messageData.sender || !messageData.content) {
+            console.error("Invalid message data");
+            return;
+        }
+
+        const newMessage = new Message({
+            sender: messageData.sender,
+            content: messageData.content,
+            timestamp: new Date(),
+        });
+
+        await newMessage.save();
+        io.emit('receiveMessage', newMessage);
+        console.log("Message saved:", newMessage);
+    } catch (error) {
+        console.error("Error saving message:", error);
+    }
+});
+
 
   socket.on('disconnect', () => {
     console.log('User disconnected');
