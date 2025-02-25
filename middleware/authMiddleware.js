@@ -4,11 +4,9 @@ const User = require('../models/User');
 const authenticateToken = (req, res, next) => {
   const token = req.header('Authorization');
   if (!token) return res.status(401).json({ message: 'Access denied' });
-
   try {
     const verified = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
     req.user = verified;
-    console.log("Authenticated User:", req.user); // Debugging log
     next();
   } catch (err) {
     res.status(400).json({ message: 'Invalid token' });
@@ -21,7 +19,7 @@ const authenticateSocket = (socket, next) => {
 
   try {
     const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified;
+    
     socket.user = verified;
     next();
   } catch (err) {
@@ -31,7 +29,6 @@ const authenticateSocket = (socket, next) => {
 
 const authorizeAdmin = async (req, res, next) => {
   try {
-    console.log("Decoded user:", req.user); // Debugging: Check if `req.user` is set
       if (!req.user || !req.user.id) {
           return res.status(401).json({ message: 'Unauthorized access' });
       }

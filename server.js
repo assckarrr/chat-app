@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
 
   Message.find().sort({ timestamp: 1 }).then((messages) => {
     socket.emit('previousMessages', messages);
-});
+})
 
 socket.on('sendMessage', async (messageData) => {
   
@@ -80,7 +80,7 @@ socket.on('sendMessage', async (messageData) => {
     } catch (error) {
         console.error("Error saving message:", error);
     }
-});
+})
 
 
   socket.on('disconnect', () => {
