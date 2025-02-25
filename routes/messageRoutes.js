@@ -1,11 +1,11 @@
 const express = require('express');
 const Message = require('../models/Message');
-const { authenticateToken, authorizeAdmin } = require('../middleware/authMiddleware');
+const { authenticateToken, authorizeAdmin, authenticateUser } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // Create a new message
-router.post('/messages', authenticateToken, async (req, res) => {
+router.post('/messages', authenticateUser, async (req, res) => {
     try {
         const { content } = req.body;
         const newMessage = new Message({
@@ -20,7 +20,7 @@ router.post('/messages', authenticateToken, async (req, res) => {
 });
 
 // Retrieve all messages for the logged-in user
-router.get('/messages', authenticateToken, async (req, res) => {
+router.get('/messages', authenticateUser, async (req, res) => {
     try {
         const messages = await Message.find();
         res.json(messages);
@@ -30,7 +30,7 @@ router.get('/messages', authenticateToken, async (req, res) => {
 });
 
 // Retrieve a specific message by its ID
-router.get('/messages/:id', authenticateToken, async (req, res) => {
+router.get('/messages/:id', authenticateUser, async (req, res) => {
     try {
         const message = await Message.findById(req.params.id);
         if (!message) return res.status(404).json({ message: 'Message not found' });
@@ -41,12 +41,12 @@ router.get('/messages/:id', authenticateToken, async (req, res) => {
 });
 
 // Update a specific message
-router.put('/messages/:id', authenticateToken, authorizeAdmin, async (req, res) => {
+router.put('/messages/:id', authenticateUser, authorizeAdmin, async (req, res) => {
     try {
         const { content } = req.body;
         const message = await Message.findById(req.params.id);
         if (!message) return res.status(404).json({ message: 'Message not found' });
-        if (message.sender !== req.user.username) return res.status(403).json({ message: 'Unauthorized' });
+        if (message.sender !== req.user.username && req.user.role != "admin") return res.status(403).json({ message: 'Unauthorized' });
 
         message.content = content;
         await message.save();
@@ -57,11 +57,12 @@ router.put('/messages/:id', authenticateToken, authorizeAdmin, async (req, res) 
 });
 
 // Delete a specific message
-router.delete('/messages/:id', authenticateToken, authorizeAdmin, async (req, res) => {
+router.delete('/messages/:id', authenticateUser, authorizeAdmin, async (req, res) => {
     try {
         const message = await Message.findById(req.params.id);
+        console.log(message);
         if (!message) return res.status(404).json({ message: 'Message not found' });
-        if (message.sender !== req.user.username) return res.status(403).json({ message: 'Unauthorized' });
+        if (message.sender !== req.user.username && req.user.role != "admin") return res.status(403).json({ message: 'Unauthorized' });
 
         await message.deleteOne();
         res.json({ message: 'Message deleted successfully' });

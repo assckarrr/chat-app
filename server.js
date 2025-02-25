@@ -6,9 +6,10 @@ const cors = require('cors');
 const socketIo = require('socket.io');
 const authRoutes = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
-const { authenticateSocket, authenticateToken, authorizeAdmin } = require('./middleware/authMiddleware');
+const { authenticateSocket, authenticateToken, authorizeAdmin, authenticateUser } = require('./middleware/authMiddleware');
 const Message = require('./models/Message');
 const messageRoutes = require('./routes/messageRoutes');
+const session = require('express-session');
 
 
 const app = express();
@@ -18,6 +19,13 @@ const io = socketIo(server, {
     origin: '*',
   },
 });
+
+app.use(session({
+  secret: process.env.SESSION_SECRET, // Use a strong secret key
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, httpOnly: true, maxAge: 1000 * 60 * 60 } // 1 hour session
+}));
 
 // Middleware
 app.use(express.json());
@@ -42,7 +50,7 @@ app.get('/profile', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'profile.html'));
 });
 
-app.get('/admin',authenticateToken , authorizeAdmin , (req, res) => {
+app.get('/admin', authenticateUser, authorizeAdmin , (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 

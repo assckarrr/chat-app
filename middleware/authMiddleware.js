@@ -3,6 +3,7 @@ const User = require('../models/User');
 
 const authenticateToken = (req, res, next) => {
   const token = req.header('Authorization');
+  console.log(token);
   if (!token) return res.status(401).json({ message: 'Access denied' });
   try {
     const verified = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
@@ -19,7 +20,6 @@ const authenticateSocket = (socket, next) => {
 
   try {
     const verified = jwt.verify(token, process.env.JWT_SECRET);
-    
     socket.user = verified;
     next();
   } catch (err) {
@@ -27,19 +27,38 @@ const authenticateSocket = (socket, next) => {
   }
 };
 
-const authorizeAdmin = async (req, res, next) => {
+const authenticateUser = async (req, res, next) => {
   try {
-      if (!req.user || !req.user.id) {
-          return res.status(401).json({ message: 'Unauthorized access' });
+      let token;
+
+      // Check if token exists in session
+      if (req.session && req.session.token) {
+          token = req.session.token;
+      } else {
+          token = req.header('Authorization')?.replace('Bearer ', '');
       }
-      const user = await User.findById(req.user.id);
-      if (!user || user.role !== 'admin') {
-          return res.status(403).json({ message: 'Access denied: Admins only' });
+
+      if (!token) {
+          return res.status(401).json({ message: 'Access denied. No token provided.' });
       }
+
+      const verified = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = verified;
+
+      console.log("Authenticated user:", req.user);
       next();
   } catch (err) {
-      res.status(500).json({ message: 'Server error' });
+      console.error("Authentication error:", err);
+      res.status(400).json({ message: 'Invalid token' });
   }
 };
 
-module.exports = { authenticateToken, authenticateSocket, authorizeAdmin };
+// Middleware to check if the user is an admin
+const authorizeAdmin = async (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: Admins only' });
+  }
+  next();
+};
+
+module.exports = { authenticateToken, authenticateSocket, authorizeAdmin, authenticateUser };
