@@ -6,8 +6,10 @@ const cors = require('cors');
 const socketIo = require('socket.io');
 const authRoutes = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
-const { authenticateSocket, authenticateToken } = require('./middleware/authMiddleware');
+const { authenticateSocket, authenticateToken, authorizeAdmin } = require('./middleware/authMiddleware');
 const Message = require('./models/Message');
+const messageRoutes = require('./routes/messageRoutes');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -36,9 +38,18 @@ app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
+app.get('/profile', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
+app.get('/admin',authenticateToken , authorizeAdmin , (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', authenticateToken, chatRoutes);
+app.use('/api', messageRoutes);
 
 // Socket.io setup
 io.use(authenticateSocket);

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    <div id="messages-container"></div>
+    <button onclick="logout()">Logout</button>
+
+    <script>
+        async function fetchMessages() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const response = await fetch('/api/admin/messages', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const messages = await response.json();
+            
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+            messages.forEach(msg => {
+                container.innerHTML += `<p><strong>${msg.sender}:</strong> ${msg.content} <button onclick="deleteMessage('${msg._id}')">Delete</button></p>`;
+            });
+        }
+
+        async function deleteMessage(id) {
+            const token = localStorage.getItem('token');
+            await fetch(`/api/admin/messages/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchMessages();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        fetchMessages();
+    </script>
+</body>
+</html>
